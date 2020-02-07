@@ -90,9 +90,9 @@ class Biscuit:
                 key = None
                 if algo.requires_key():
                     key = self.managers[entry[KEY_MANAGER_FIELD]](name, entry)
-                plaintext = algo(key, base64.decodestring(
+                plaintext = algo(key, base64.b64decode(
                     entry[CIPHERTEXT_FIELD]))
-                return plaintext
+                return plaintext.decode("utf-8")
             except (ValueError,
                     binascii.Error,
                     botocore.exceptions.ClientError,
@@ -111,7 +111,7 @@ class AwsKmsKeyManager:
     def __call__(self, name, value):
         client = self.factory(region_from_arn(value[KEY_ID_FIELD]))
         decrypt_key_response = client.decrypt(
-            CiphertextBlob=base64.decodestring(value["key_ciphertext"]),
+            CiphertextBlob=base64.b64decode(value["key_ciphertext"]),
             EncryptionContext={'SecretName': name})
         return decrypt_key_response["Plaintext"]
 
@@ -161,6 +161,6 @@ class AesGcm256Algo():
 
 
 def region_from_arn(arn):
-    if arn.startswith("arn:") and arn.split(":") > 6:
+    if arn.startswith("arn:") and len(arn.split(":")) > 6:
         return arn.split(":")[3]
     return None
